@@ -1,13 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type { ZCodeThread } from "./types.js";
 import { ZCodeEventBus } from "../events/event-bus.js";
+import type { ThreadStore } from "../storage/thread-store.js";
 
 export class ThreadManager {
-  private threads = new Map<string, ZCodeThread>();
+  private readonly threads = new Map<string, ZCodeThread>();
 
-  constructor(private readonly events = new ZCodeEventBus()) {}
+  constructor(
+    private readonly events = new ZCodeEventBus(),
+    private readonly store?: ThreadStore,
+  ) {}
 
-  create(workspace: string): ZCodeThread {
+  async create(workspace: string): Promise<ZCodeThread> {
     const now = Date.now();
     const thread: ZCodeThread = {
       id: randomUUID(),
@@ -18,6 +22,8 @@ export class ThreadManager {
     };
 
     this.threads.set(thread.id, thread);
+    await this.store?.save(thread);
+
     this.events.publish({
       id: randomUUID(),
       threadId: thread.id,
@@ -29,11 +35,22 @@ export class ThreadManager {
     return thread;
   }
 
-  get(id: string) {
-    return this.threads.get(id);
+  async get(id: string): Promise<ZCodeThread | undefined> {
+    return this.threads.get(id) ?? this.store?.get(id);
   }
 
-  list() {
-    return [...this.threads.values()];
+  async list(): Promise<ZCodeThread[]> {
+    if (this.threads.size > 0) {
+      return [...this.threads.values()];
+    }
+
+    return this.store?.list() ?? [];
+  }
+
+  async restore(): Promise<void> {
+    const threads = await this.store?.list();
+    for (const thread of threads ?? []) {
+      this.threads.set(thread.id, thread);
+    }
   }
 }
