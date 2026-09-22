@@ -5,6 +5,20 @@ export interface SqliteDatabase {
   close(): void;
 }
 
-export function initializeDatabase(db: SqliteDatabase): void {
-  db.exec(SQLITE_SCHEMA);
+export class SqliteRuntime {
+  constructor(private readonly db: SqliteDatabase) {}
+
+  initialize(): void {
+    this.db.exec(SQLITE_SCHEMA);
+  }
+
+  dispose(): void {
+    this.db.close();
+  }
+}
+
+export function initializeDatabase(db: SqliteDatabase): SqliteRuntime {
+  const runtime = new SqliteRuntime(db);
+  runtime.initialize();
+  return runtime;
 }
