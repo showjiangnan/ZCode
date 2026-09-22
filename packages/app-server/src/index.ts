@@ -7,3 +7,4 @@ export * from "./server-bridge.js";
 export * from "./storage/thread-store.js";
 export * from "./storage/event-store.js";
 export * from "./supervisor/index.js";
+export * from "./agent/index.js";
